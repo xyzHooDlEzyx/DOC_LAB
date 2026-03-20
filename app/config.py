@@ -8,6 +8,7 @@ class Config:
         "DATABASE_URL", f"sqlite:///{DB_PATH}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret")
     API_TITLE = "Insurance Import API"
     API_VERSION = "1.0"
     OPENAPI_VERSION = "3.0.3"

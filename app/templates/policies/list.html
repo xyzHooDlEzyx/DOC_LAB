@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="actions">
+        <a class="button" href="{{ url_for('web.new_policy') }}">Add policy</a>
+        <a class="button secondary" href="{{ url_for('web.list_policies') }}">Refresh</a>
+    </div>
+    <div style="margin-top: 12px;">
+        <input id="policy_search" type="text" placeholder="Search policy" style="width: 100%; max-width: 360px;">
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Policy</th>
+                <th>Customer</th>
+                <th>Agent</th>
+                <th>Coverage</th>
+                <th>Final price</th>
+                <th>Trip type</th>
+                <th>Family</th>
+                <th>Destinations</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="policy_rows">
+            {% for policy in policies %}
+                <tr data-search="{{ (policy.policy_identifier ~ ' ' ~ policy.customer.full_name ~ ' ' ~ policy.agent.agent_identifier ~ ' ' ~ policy.trip_type ~ ' ' ~ policy.coverage_start ~ ' ' ~ policy.coverage_end) | lower }}">
+                    <td>{{ policy.policy_identifier }}</td>
+                    <td>{{ policy.customer.full_name }}</td>
+                    <td>{{ policy.agent.agent_identifier }}</td>
+                    <td>{{ policy.coverage_start }} - {{ policy.coverage_end }}</td>
+                    <td>{{ "%.2f"|format(policy.final_price) }}</td>
+                    <td>{{ policy.trip_type }}</td>
+                    <td>{{ "Yes" if policy.is_family else "No" }} ({{ policy.family_size }})</td>
+                    <td>
+                        <div class="chips">
+                            {% for destination in policy.destinations %}
+                                <span class="chip">{{ destination.country }}</span>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="actions">
+                            <a class="button secondary" href="{{ url_for('web.edit_policy', policy_id=policy.id) }}">Edit</a>
+                            <form method="post" action="{{ url_for('web.delete_policy', policy_id=policy.id) }}">
+                                <button class="danger" type="submit">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="6">No policies found. Import or add data.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="actions" style="margin-top: 12px;">
+        <button id="load_more" class="button secondary" type="button">See more (20)</button>
+    </div>
+</div>
+
+<script>
+    const policySearch = document.getElementById("policy_search");
+    const policyRows = Array.from(document.querySelectorAll("#policy_rows tr[data-search]"));
+    const loadMoreButton = document.getElementById("load_more");
+    const pageSize = 20;
+    let visibleCount = pageSize;
+
+    function applyVisibility() {
+        let shown = 0;
+        const query = policySearch.value.trim().toLowerCase();
+        policyRows.forEach((row) => {
+            const haystack = row.dataset.search || "";
+            const matches = !query || haystack.includes(query);
+            if (matches && shown < visibleCount) {
+                row.style.display = "";
+                shown += 1;
+            } else {
+                row.style.display = "none";
+            }
+        });
+        const remaining = policyRows.filter((row) => row.style.display === "none" && (row.dataset.search || "").includes(query)).length;
+        loadMoreButton.style.display = remaining > 0 ? "inline-flex" : "none";
+        loadMoreButton.textContent = `See more (${pageSize})`;
+    }
+
+    policySearch.addEventListener("input", () => {
+        visibleCount = pageSize;
+        applyVisibility();
+    });
+
+    loadMoreButton.addEventListener("click", () => {
+        visibleCount += pageSize;
+        applyVisibility();
+    });
+
+    applyVisibility();
+</script>
+{% endblock %}

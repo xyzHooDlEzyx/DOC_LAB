@@ -22,7 +22,7 @@ class IDataWriter(ABC):
 
 class IPolicyRepository(ABC):
     @abstractmethod
-    def list_policies(self):
+    def list_policies(self, order: str = "asc"):
         raise NotImplementedError
 
     @abstractmethod

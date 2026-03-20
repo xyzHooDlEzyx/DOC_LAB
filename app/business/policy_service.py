@@ -10,8 +10,11 @@ class PolicyService(IPolicyService):
     def __init__(self, repository: IPolicyRepository) -> None:
         self._repository = repository
 
-    def list_policies(self):
-        return self._repository.list_policies()
+    def list_policies(self, order: str = "asc"):
+        normalized = (order or "asc").lower()
+        if normalized not in {"asc", "desc"}:
+            normalized = "asc"
+        return self._repository.list_policies(normalized)
 
     def get_policy(self, policy_id: int):
         policy = self._repository.get_policy(policy_id)
@@ -39,6 +42,7 @@ class PolicyService(IPolicyService):
             is_family=self._parse_bool(payload.get("is_family")),
             family_size=self._parse_family_size(payload.get("family_size")),
         )
+        self._validate_family_size(policy.is_family, policy.family_size)
         self._apply_relations(policy, payload)
         policy.final_price = self._calculate_final_price(
             policy.base_premium,
@@ -49,6 +53,7 @@ class PolicyService(IPolicyService):
             policy.trip_type,
             policy.is_family,
             policy.family_size,
+            policy.agent.specialization,
         )
         self._repository.add_policy(policy)
 
@@ -62,6 +67,7 @@ class PolicyService(IPolicyService):
         policy.trip_type = self._normalize_trip_type(payload.get("trip_type"))
         policy.is_family = self._parse_bool(payload.get("is_family"))
         policy.family_size = self._parse_family_size(payload.get("family_size"))
+        self._validate_family_size(policy.is_family, policy.family_size)
         self._apply_relations(policy, payload)
         policy.final_price = self._calculate_final_price(
             policy.base_premium,
@@ -72,6 +78,7 @@ class PolicyService(IPolicyService):
             policy.trip_type,
             policy.is_family,
             policy.family_size,
+            policy.agent.specialization,
         )
         self._repository.update_policy(policy)
 
@@ -87,6 +94,8 @@ class PolicyService(IPolicyService):
         agent = self._repository.get_agent(agent_id)
         if agent is None:
             raise ValueError("Agent not found")
+        if not self._is_agent_allowed(agent.specialization, policy.trip_type, policy.is_family):
+            raise ValueError("Agent specialization is not allowed for this policy")
         customer = self._repository.get_customer(customer_id)
         if customer is None:
             raise ValueError("Customer not found")
@@ -106,6 +115,7 @@ class PolicyService(IPolicyService):
         trip_type: str,
         is_family: bool,
         family_size: int,
+        agent_specialization: str,
     ) -> float:
         if coverage_end < coverage_start:
             raise ValueError("Coverage end must be on or after start date")
@@ -118,10 +128,12 @@ class PolicyService(IPolicyService):
             )
         base_value = base_premium + (duration_days * risk_multiplier)
         if len(destinations) > 1:
-            base_value *= 1.10
+            base_value *= 1.20
         if PolicyService._is_bad_health(health_state):
             base_value += 2.0
         base_value *= PolicyService._trip_type_multiplier(trip_type)
+        if PolicyService._is_premium_agent(agent_specialization):
+            base_value *= 1.20
         if is_family:
             base_value += (base_premium * 0.10)
             base_value += 20.0 * max(family_size, 1)
@@ -166,6 +178,34 @@ class PolicyService(IPolicyService):
         except (TypeError, ValueError):
             size = 1
         return max(size, 1)
+
+    @staticmethod
+    def _validate_family_size(is_family: bool, family_size: int) -> None:
+        if is_family and family_size < 2:
+            raise ValueError("Family size must be at least 2")
+
+    @staticmethod
+    def _allowed_specializations(trip_type: str, is_family: bool):
+        normalized = (trip_type or "").strip().lower()
+        mapping = {
+            "business": {"business", "premium"},
+            "leisure": {"adventure", "premium"},
+            "adventure": {"adventure", "premium"},
+            "study": {"student", "premium"},
+        }
+        allowed = set(mapping.get(normalized, {"premium"}))
+        if is_family:
+            allowed.add("family")
+        return allowed
+
+    @staticmethod
+    def _is_agent_allowed(specialization: str, trip_type: str, is_family: bool) -> bool:
+        normalized = (specialization or "").strip().lower()
+        return normalized in PolicyService._allowed_specializations(trip_type, is_family)
+
+    @staticmethod
+    def _is_premium_agent(specialization: str) -> bool:
+        return (specialization or "").strip().lower() == "premium"
 
     @staticmethod
     def _is_bad_health(value: str) -> bool:

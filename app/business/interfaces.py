@@ -9,7 +9,7 @@ class IInsuranceDataImporter(ABC):
 
 class IPolicyService(ABC):
     @abstractmethod
-    def list_policies(self):
+    def list_policies(self, order: str = "asc"):
         raise NotImplementedError
 
     @abstractmethod

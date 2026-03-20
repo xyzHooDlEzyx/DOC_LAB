@@ -71,6 +71,7 @@ class ImportResource(MethodView):
 
             with open(tmp_path, "r", encoding="utf-8", newline="") as handle:
                 reader = csv.DictReader(handle)
+
                 if not reader.fieldnames:
                     abort(400, message="CSV file has no header row.")
                 missing = required_columns.difference(set(reader.fieldnames))

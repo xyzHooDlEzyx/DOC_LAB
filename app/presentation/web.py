@@ -9,8 +9,13 @@ web_bp = Blueprint("web", __name__)
 @web_bp.get("/policies")
 def list_policies():
     service = build_policy_service()
-    policies = service.list_policies()
-    return render_template("policies/list.html", policies=policies)
+    order = request.args.get("order", "asc")
+    policies = service.list_policies(order)
+    return render_template(
+        "policies/list.html",
+        policies=policies,
+        current_order=order,
+    )
 
 
 @web_bp.get("/policies/new")

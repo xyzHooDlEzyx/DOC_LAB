@@ -5,6 +5,8 @@
     <div class="actions">
         <a class="button" href="{{ url_for('web.new_policy') }}">Add policy</a>
         <a class="button secondary" href="{{ url_for('web.list_policies') }}">Refresh</a>
+        <a class="button secondary" href="{{ url_for('web.list_policies', order='asc') }}">Sort ID ASC</a>
+        <a class="button secondary" href="{{ url_for('web.list_policies', order='desc') }}">Sort ID DESC</a>
     </div>
     <div style="margin-top: 12px;">
         <input id="policy_search" type="text" placeholder="Search policy" style="width: 100%; max-width: 360px;">

@@ -48,7 +48,7 @@
                 <select id="agent_select" name="agent_id" required>
                     <option value="" {% if not (form_data.agent_id if form_data else policy.agent_id if policy else '') %}selected{% endif %}>Select agent</option>
                     {% for agent in options.agents %}
-                        <option value="{{ agent.id }}" {% if (form_data.agent_id if form_data else policy.agent_id if policy else '')|string == agent.id|string %}selected{% endif %}>
+                        <option value="{{ agent.id }}" data-spec="{{ agent.specialization }}" {% if (form_data.agent_id if form_data else policy.agent_id if policy else '')|string == agent.id|string %}selected{% endif %}>
                             {{ agent.agent_identifier }} - {{ agent.specialization }}
                         </option>
                     {% endfor %}
@@ -80,6 +80,7 @@
         </div>
         <div class="actions" style="margin-top: 20px;">
             <button type="submit">Save</button>
+            <button id="refresh_total" type="button" class="button secondary">Refresh total</button>
             <a class="button secondary" href="{{ url_for('web.list_policies') }}">Cancel</a>
         </div>
     </form>
@@ -101,6 +102,7 @@
     const destinationSearchInput = document.getElementById("destination_search");
     const selectedDestinations = document.getElementById("selected_destinations");
     const addDestinationButton = document.getElementById("add_destination");
+    const refreshTotalButton = document.getElementById("refresh_total");
 
     const destinationData = [
         {% for destination in options.destinations %}
@@ -153,7 +155,7 @@
 
         let total = basePremium + (durationDays * maxRisk);
         if (selectedCount > 1) {
-            total *= 1.10;
+            total *= 1.20;
         }
 
         const tripMultipliers = {
@@ -165,6 +167,12 @@
 
         const tripMultiplier = tripMultipliers[tripTypeSelect.value] || 1.0;
         total *= tripMultiplier;
+
+        const selectedAgent = agentSelect.options[agentSelect.selectedIndex];
+        const agentSpec = selectedAgent ? (selectedAgent.dataset.spec || "").toLowerCase() : "";
+        if (agentSpec === "premium") {
+            total *= 1.20;
+        }
 
         if (isFamilySelect.value === "true") {
             const size = Math.max(parseInt(familySizeInput.value || "1", 10), 1);
@@ -192,17 +200,79 @@
         const query = searchInput.value.trim().toLowerCase();
         Array.from(selectElement.options).forEach((option) => {
             const label = option.text.toLowerCase();
-            option.hidden = query && !label.includes(query);
+            const allowed = option.dataset.allowed !== "false";
+            const matchesSearch = !query || label.includes(query);
+            option.hidden = !(allowed && matchesSearch);
         });
+    }
+
+    function allowedSpecializations() {
+        const mapping = {
+            business: ["business", "premium"],
+            leisure: ["adventure", "premium"],
+            adventure: ["adventure", "premium"],
+            study: ["student", "premium"],
+        };
+        const tripType = tripTypeSelect.value || "leisure";
+        const allowed = new Set(mapping[tripType] || ["premium"]);
+        if (isFamilySelect.value === "true") {
+            allowed.add("family");
+        }
+        return allowed;
+    }
+
+    function updateAgentOptions() {
+        const allowed = allowedSpecializations();
+        Array.from(agentSelect.options).forEach((option) => {
+            if (!option.value) {
+                option.dataset.allowed = "true";
+                return;
+            }
+            const spec = (option.dataset.spec || "").toLowerCase();
+            option.dataset.allowed = allowed.has(spec) ? "true" : "false";
+        });
+        if (agentSelect.value) {
+            const current = agentSelect.options[agentSelect.selectedIndex];
+            if (current && current.dataset.allowed === "false") {
+                agentSelect.value = "";
+            }
+        }
+        filterSelect(agentSearchInput, agentSelect);
     }
 
     agentSearchInput.addEventListener("input", () => {
         filterSelect(agentSearchInput, agentSelect);
     });
 
+    agentSelect.addEventListener("change", calculateFinalPrice);
+
+    refreshTotalButton.addEventListener("click", calculateFinalPrice);
+
     customerSearchInput.addEventListener("input", () => {
         filterSelect(customerSearchInput, customerSelect);
     });
+
+    tripTypeSelect.addEventListener("change", updateAgentOptions);
+    isFamilySelect.addEventListener("change", () => {
+        updateAgentOptions();
+        if (isFamilySelect.value === "true") {
+            familySizeInput.min = "2";
+            if (parseInt(familySizeInput.value || "0", 10) < 2) {
+                familySizeInput.value = "2";
+            }
+        } else {
+            familySizeInput.min = "1";
+            if (parseInt(familySizeInput.value || "0", 10) < 1) {
+                familySizeInput.value = "1";
+            }
+        }
+        calculateFinalPrice();
+    });
+
+    updateAgentOptions();
+    if (isFamilySelect.value === "true") {
+        familySizeInput.min = "2";
+    }
 
     function syncDestinationInputs() {
         destinationInputs.forEach((input) => input.remove());

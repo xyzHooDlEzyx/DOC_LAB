@@ -5,8 +5,13 @@ from ..models import Customer, Destination, InsuranceAgent, InsurancePolicy, db
 
 
 class SqlAlchemyPolicyRepository(IPolicyRepository):
-    def list_policies(self):
-        return InsurancePolicy.query.order_by(InsurancePolicy.id.asc()).all()
+    def list_policies(self, order: str = "asc"):
+        sort_column = InsurancePolicy.policy_identifier
+        if order == "desc":
+            sort_column = sort_column.desc()
+        else:
+            sort_column = sort_column.asc()
+        return InsurancePolicy.query.order_by(sort_column).all()
 
     def get_policy(self, policy_id: int):
         return db.session.get(InsurancePolicy, policy_id)

@@ -39,6 +39,9 @@ class InsuranceDataImporter(IInsuranceDataImporter):
                     full_name=row["customer_name"].strip(),
                     age=int(row["customer_age"]),
                     health_state=row["customer_health_state"].strip(),
+                    gender=row.get("customer_gender", "").strip() or None,
+                    health_condition=row.get("customer_health_condition", "").strip()
+                    or None,
                 )
                 customers_by_id[customer_id] = customer
 
@@ -62,6 +65,9 @@ class InsuranceDataImporter(IInsuranceDataImporter):
                     coverage_end=datetime.strptime(
                         row["coverage_end"], "%Y-%m-%d"
                     ).date(),
+                    trip_type=row.get("trip_type", "leisure").strip() or "leisure",
+                    is_family=(row.get("is_family", "").strip().lower() == "true"),
+                    family_size=int(row.get("family_size", "1")),
                     agent=agent,
                     customer=customer,
                 )

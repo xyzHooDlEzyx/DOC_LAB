@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2>{{ form_title }}</h2>
+    <form method="post">
+        <div class="grid two">
+            <div>
+                <label>Full name</label>
+                <input name="full_name" required value="{{ (form_data.full_name if form_data else customer.full_name if customer else '') }}">
+            </div>
+            <div>
+                <label>Gender</label>
+                <select name="gender">
+                    {% set selected_gender = (form_data.gender if form_data else customer.gender if customer else '') %}
+                    <option value="" {% if not selected_gender %}selected{% endif %}>Not specified</option>
+                    {% for option in ["female", "male", "non-binary"] %}
+                        <option value="{{ option }}" {% if selected_gender == option %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Age</label>
+                <input name="age" type="number" min="1" required value="{{ (form_data.age if form_data else customer.age if customer else '') }}">
+            </div>
+            <div>
+                <label>Health state</label>
+                <select name="health_state" required>
+                    {% set selected_state = (form_data.health_state if form_data else customer.health_state if customer else '') %}
+                    {% for option in ["excellent", "good", "average", "bad", "risk"] %}
+                        <option value="{{ option }}" {% if selected_state == option %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Health condition</label>
+                <input name="health_condition" value="{{ (form_data.health_condition if form_data else customer.health_condition if customer else '') }}">
+            </div>
+        </div>
+        <div class="actions" style="margin-top: 20px;">
+            <button type="submit">Save</button>
+            <a class="button secondary" href="{{ url_for('web.list_customers') }}">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

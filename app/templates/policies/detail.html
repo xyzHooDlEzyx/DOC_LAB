@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2>Policy {{ policy.policy_identifier }}</h2>
+    <p><strong>Customer:</strong> {{ policy.customer.full_name }}</p>
+    <p><strong>Agent:</strong> {{ policy.agent.agent_identifier }}</p>
+    <p><strong>Coverage:</strong> {{ policy.coverage_start }} - {{ policy.coverage_end }}</p>
+    <div class="chips">
+        {% for destination in policy.destinations %}
+            <span class="chip">{{ destination.country }}</span>
+        {% endfor %}
+    </div>
+    <div class="actions" style="margin-top: 16px;">
+        <a class="button secondary" href="{{ url_for('web.list_policies') }}">Back</a>
+    </div>
+</div>
+{% endblock %}

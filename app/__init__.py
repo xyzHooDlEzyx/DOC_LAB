@@ -4,6 +4,7 @@ from flask_smorest import Api
 from .config import Config
 from .models import db
 from .presentation.api import blp as import_blp
+from .presentation.web import web_bp
 
 
 def create_app(config_object=Config):
@@ -12,9 +13,10 @@ def create_app(config_object=Config):
     db.init_app(app)
     api = Api(app)
     api.register_blueprint(import_blp)
+    app.register_blueprint(web_bp)
 
     @app.get("/")
     def index():
-        return redirect("/swagger")
+        return redirect("/policies")
 
     return app

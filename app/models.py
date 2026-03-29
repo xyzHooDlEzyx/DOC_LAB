@@ -38,6 +38,8 @@ class Customer(db.Model):
     full_name = db.Column(db.String(120), nullable=False)
     age = db.Column(db.Integer, nullable=False)
     health_state = db.Column(db.String(60), nullable=False)
+    gender = db.Column(db.String(20), nullable=True)
+    health_condition = db.Column(db.String(120), nullable=True)
 
     policies = db.relationship("InsurancePolicy", back_populates="customer")
 
@@ -59,6 +61,9 @@ class InsurancePolicy(db.Model):
     final_price = db.Column(db.Float, nullable=False)
     coverage_start = db.Column(db.Date, nullable=False)
     coverage_end = db.Column(db.Date, nullable=False)
+    trip_type = db.Column(db.String(30), nullable=False, default="leisure")
+    is_family = db.Column(db.Boolean, nullable=False, default=False)
+    family_size = db.Column(db.Integer, nullable=False, default=1)
 
     agent_id = db.Column(
         db.Integer, db.ForeignKey("insurance_agents.id"), nullable=False

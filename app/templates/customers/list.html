@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="actions">
+        <a class="button" href="{{ url_for('web.new_customer') }}">Add customer</a>
+        <a class="button secondary" href="{{ url_for('web.list_customers') }}">Refresh</a>
+    </div>
+    <div style="margin-top: 12px;">
+        <input id="customer_search" type="text" placeholder="Search customer" style="width: 100%; max-width: 360px;">
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Customer ID</th>
+                <th>Name</th>
+                <th>Gender</th>
+                <th>Age</th>
+                <th>Health state</th>
+                <th>Condition</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="customer_rows">
+            {% for customer in customers %}
+                <tr data-search="{{ (customer.full_name ~ ' ' ~ customer.customer_identifier ~ ' ' ~ (customer.gender or '') ~ ' ' ~ (customer.health_state or '') ~ ' ' ~ (customer.health_condition or '')) | lower }}" data-index="{{ loop.index0 }}">
+                    <td>{{ customer.customer_identifier }}</td>
+                    <td>{{ customer.full_name }}</td>
+                    <td>{{ customer.gender or '-' }}</td>
+                    <td>{{ customer.age }}</td>
+                    <td>{{ customer.health_state }}</td>
+                    <td>{{ customer.health_condition or '-' }}</td>
+                    <td>
+                        <div class="actions">
+                            <a class="button secondary" href="{{ url_for('web.edit_customer', customer_id=customer.id) }}">Edit</a>
+                            <form method="post" action="{{ url_for('web.delete_customer', customer_id=customer.id) }}">
+                                <button class="danger" type="submit">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="7">No customers found. Import or add data.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="actions" style="margin-top: 12px;">
+        <button id="load_more" class="button secondary" type="button">See more (20)</button>
+    </div>
+</div>
+
+<script>
+    const customerSearch = document.getElementById("customer_search");
+    const customerRows = Array.from(document.querySelectorAll("#customer_rows tr[data-search]"));
+    const loadMoreButton = document.getElementById("load_more");
+    const pageSize = 20;
+    let visibleCount = pageSize;
+
+    function applyVisibility() {
+        let shown = 0;
+        customerRows.forEach((row) => {
+            const haystack = row.dataset.search || "";
+            const matches = !customerSearch.value.trim() || haystack.includes(customerSearch.value.trim().toLowerCase());
+            if (matches && shown < visibleCount) {
+                row.style.display = "";
+                shown += 1;
+            } else {
+                row.style.display = "none";
+            }
+        });
+        const remaining = customerRows.filter((row) => row.style.display === "none" && (row.dataset.search || "").includes(customerSearch.value.trim().toLowerCase())).length;
+        loadMoreButton.style.display = remaining > 0 ? "inline-flex" : "none";
+        loadMoreButton.textContent = `See more (${pageSize})`;
+    }
+
+    customerSearch.addEventListener("input", () => {
+        visibleCount = pageSize;
+        applyVisibility();
+    });
+
+    loadMoreButton.addEventListener("click", () => {
+        visibleCount += pageSize;
+        applyVisibility();
+    });
+
+    applyVisibility();
+</script>
+{% endblock %}

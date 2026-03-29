@@ -1,0 +1,21 @@
+{
+  "dataset": {
+    "url": "https://www.dallasopendata.com/resource/qv6i-rri7.json",
+    "output_file": "app/data/police_incidents.json"
+  },
+  "output": {
+    "type": "redis",
+    "console": {
+      "limit": 5
+    },
+    "kafka": {
+      "bootstrap_servers": "localhost:9092",
+      "topic": "police_incidents"
+    },
+    "redis": {
+      "host": "localhost",
+      "port": 6379,
+      "list_key": "police_incidents"
+    }
+  }
+}

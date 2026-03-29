@@ -54,6 +54,7 @@ class PolicyService(IPolicyService):
             policy.is_family,
             policy.family_size,
             policy.agent.specialization,
+            policy.customer.age,
         )
         self._repository.add_policy(policy)
 
@@ -79,6 +80,7 @@ class PolicyService(IPolicyService):
             policy.is_family,
             policy.family_size,
             policy.agent.specialization,
+            policy.customer.age,
         )
         self._repository.update_policy(policy)
 
@@ -116,6 +118,7 @@ class PolicyService(IPolicyService):
         is_family: bool,
         family_size: int,
         agent_specialization: str,
+        customer_age: int,
     ) -> float:
         if coverage_end < coverage_start:
             raise ValueError("Coverage end must be on or after start date")
@@ -134,6 +137,8 @@ class PolicyService(IPolicyService):
         base_value *= PolicyService._trip_type_multiplier(trip_type)
         if PolicyService._is_premium_agent(agent_specialization):
             base_value *= 1.20
+        if PolicyService._is_senior(customer_age):
+            base_value *= 1.10
         if is_family:
             base_value += (base_premium * 0.10)
             base_value += 20.0 * max(family_size, 1)
@@ -213,6 +218,13 @@ class PolicyService(IPolicyService):
             return False
         normalized = value.strip().lower()
         return normalized in {"bad", "risk"}
+
+    @staticmethod
+    def _is_senior(age: int) -> bool:
+        try:
+            return int(age) > 60
+        except (TypeError, ValueError):
+            return False
 
     @staticmethod
     def _parse_date(value: str):

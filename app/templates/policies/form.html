@@ -60,7 +60,7 @@
                 <select id="customer_select" name="customer_id" required>
                     <option value="" {% if not (form_data.customer_id if form_data else policy.customer_id if policy else '') %}selected{% endif %}>Select customer</option>
                     {% for customer in options.customers %}
-                        <option value="{{ customer.id }}" {% if (form_data.customer_id if form_data else policy.customer_id if policy else '')|string == customer.id|string %}selected{% endif %}>
+                        <option value="{{ customer.id }}" data-age="{{ customer.age }}" {% if (form_data.customer_id if form_data else policy.customer_id if policy else '')|string == customer.id|string %}selected{% endif %}>
                             {{ customer.full_name }} ({{ customer.customer_identifier }})
                         </option>
                     {% endfor %}
@@ -179,6 +179,11 @@
             total += (basePremium * 0.10);
             total += 20.0 * size;
         }
+        const selectedCustomer = customerSelect.options[customerSelect.selectedIndex];
+        const customerAge = selectedCustomer ? parseInt(selectedCustomer.dataset.age || "0", 10) : 0;
+        if (customerAge > 60) {
+            total *= 1.10;
+        }
         finalPriceInput.value = total.toFixed(2);
     }
 
@@ -251,6 +256,8 @@
     customerSearchInput.addEventListener("input", () => {
         filterSelect(customerSearchInput, customerSelect);
     });
+
+    customerSelect.addEventListener("change", calculateFinalPrice);
 
     tripTypeSelect.addEventListener("change", updateAgentOptions);
     isFamilySelect.addEventListener("change", () => {

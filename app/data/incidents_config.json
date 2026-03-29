@@ -4,7 +4,7 @@
     "output_file": "app/data/police_incidents.json"
   },
   "output": {
-    "type": "redis",
+    "type": "firebase",
     "console": {
       "limit": 5
     },
@@ -16,6 +16,11 @@
       "host": "localhost",
       "port": 6379,
       "list_key": "police_incidents"
+    },
+    "firebase": {
+      "service_account_file": "lab4-197c1-firebase-adminsdk-fbsvc-1007650bfb.json",
+      "collection": "police_incidents",
+      "database_id": "police-reports"
     }
   }
 }

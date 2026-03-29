@@ -70,6 +70,61 @@ class RedisOutputStrategy(OutputStrategy):
         return count
 
 
+class FirebaseOutputStrategy(OutputStrategy):
+    def __init__(
+        self,
+        service_account_file: str,
+        collection: str,
+        database_id: Optional[str] = None,
+    ) -> None:
+        self._service_account_file = service_account_file
+        self._collection = collection
+        self._database_id = database_id
+
+    def write_records(self, records: Iterable[Mapping[str, object]]) -> int:
+        try:
+            import firebase_admin
+            from firebase_admin import credentials, firestore
+            from google.oauth2 import service_account
+        except ImportError as exc:
+            raise RuntimeError(
+                "firebase-admin is required for Firebase output."
+            ) from exc
+
+        if not self._service_account_file:
+            raise RuntimeError("Firebase service_account_file is required.")
+
+        credentials_obj = service_account.Credentials.from_service_account_file(
+            self._service_account_file
+        )
+        firebase_cred = credentials.Certificate(self._service_account_file)
+
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(firebase_cred)
+
+        if self._database_id:
+            db = firestore.Client(
+                project=credentials_obj.project_id,
+                credentials=credentials_obj,
+                database=self._database_id,
+            )
+        else:
+            db = firestore.client()
+        batch = db.batch()
+        count = 0
+        for record in records:
+            doc_ref = db.collection(self._collection).document()
+            batch.set(doc_ref, record)
+            count += 1
+            if count % 500 == 0:
+                batch.commit()
+                batch = db.batch()
+
+        if count % 500 != 0:
+            batch.commit()
+        return count
+
+
 def build_output_strategy(output_config: Dict[str, object]) -> OutputStrategy:
     output_type = str(output_config.get("type", "console")).lower()
     if output_type == "console":
@@ -88,5 +143,16 @@ def build_output_strategy(output_config: Dict[str, object]) -> OutputStrategy:
             host=str(redis_config.get("host", "localhost")),
             port=int(redis_config.get("port", 6379)),
             list_key=str(redis_config.get("list_key", "police_incidents")),
+        )
+    if output_type == "firebase":
+        firebase_config = output_config.get("firebase", {})
+        return FirebaseOutputStrategy(
+            service_account_file=str(
+                firebase_config.get("service_account_file", "")
+            ),
+            collection=str(
+                firebase_config.get("collection", "police_incidents")
+            ),
+            database_id=str(firebase_config.get("database_id", "")) or None,
         )
     raise ValueError(f"Unsupported output type: {output_type}")

@@ -4,6 +4,10 @@ import os
 class Config:
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
     DB_PATH = os.path.join(BASE_DIR, "instance", "insurance.db")
+    INCIDENTS_CONFIG_PATH = os.environ.get(
+        "INCIDENTS_CONFIG_PATH",
+        os.path.join(BASE_DIR, "data", "incidents_config.json"),
+    )
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "DATABASE_URL", f"sqlite:///{DB_PATH}"
     )
